@@ -581,11 +581,12 @@ function updateTokenLink() {
   }
   const repoName = getRepoName();
   const params = new URLSearchParams({
-    scopes: 'public_repo',
-    description: 'Satellite',
+    name: 'Satellite',
+    target_name: username,
+    contents: 'write',
   });
   document.getElementById('token-link').href =
-    `https://github.com/settings/tokens/new?${params}`;
+    `https://github.com/settings/personal-access-tokens/new?${params}`;
   document.getElementById('repo-hint').textContent = repoName;
   hint.style.display = '';
 }
