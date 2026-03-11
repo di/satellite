@@ -100,9 +100,6 @@ async function bootstrap() {
       'satproto.json',
       JSON.stringify({
         satproto_version: '0.1.0',
-        handle: domain,
-        display_name: domain,
-        bio: '',
         public_key: pk,
       }),
     ],
@@ -279,7 +276,7 @@ window.signIn = async function () {
     const publicKey = crypto.derivePublicKey(secretKey);
 
     // Fetch and decrypt self data from the site
-    const { base } = await feed.getSatRoot(domain);
+    const base = await feed.getSatBase(domain);
     const resp = await fetch(`${base}/keys/_self.json`);
     if (!resp.ok) throw new Error('Could not fetch self data — has this site been initialized?');
     const envelope = await resp.json();

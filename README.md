@@ -49,6 +49,15 @@ A `s@`-enabled site exposes a discovery document at:
 GET https://{domain}/satellite/satproto.json
 ```
 
+The discovery document simply contains the protocol version and the user's public key:
+
+```json
+{
+  "satproto_version": "0.1.0",
+  "public_key": "<base64-encoded X25519 public key>"
+}
+```
+
 By convention, the client looks under `/satellite/` by default.
 If the data lives in a differently-named repo, place a `satellite.json`
 file at the domain root (e.g. in the `username.github.io` repo) containing:
@@ -57,22 +66,10 @@ file at the domain root (e.g. in the `username.github.io` repo) containing:
 { "sat_repo": "my-custom-repo" }
 ```
 
-The discovery document itself contains the user's profile:
-
-```json
-{
-  "satproto_version": "0.1.0",
-  "handle": "alice.com",
-  "display_name": "Alice",
-  "bio": "Hello world",
-  "public_key": "<base64-encoded X25519 public key>"
-}
-```
-
 ## Encryption Model
 
 All user data is stored in an encrypted JSON store. 
-Only users in the owner's follow list can decrypt it.
+Only the user and users in the owner's follow list can decrypt it.
 
 ### Keys
 
@@ -87,8 +84,8 @@ Only users in the owner's follow list can decrypt it.
 
 ### Self Key (`keys/_self.json`)
 
-The user's content key, GitHub repo, and GitHub token are bundled into
-a single sealed box (`crypto_box_seal` with the user's own public key)
+The user's content key and publishing secrets (e.g. GitHub access tokens)
+ are bundled into a single sealed box (`crypto_box_seal` with the user's own public key)
 and stored at `keys/_self.json`. Only the user's private key can open it.
 
 This allows a user to sign back in on a new device or after clearing
@@ -106,7 +103,7 @@ When the user unfollows someone:
 ### Decryption Flow
 
 When Bob visits Alice's site:
-1. Fetch Alice's `/satellite/satproto.json` to get her public key
+1. Resolve Alice's repo path (via `satellite.json` or the default `/satellite/`)
 2. Fetch `keys/bob.example.com.json`
 3. Decrypt the content key using Bob's private key (`crypto_box_seal_open`)
 4. Fetch `posts/index.json` to get the list of post IDs
@@ -155,7 +152,7 @@ GET https://{domain}/satellite/follows/index.json
 
 The client builds a feed by:
 1. Reading the user's follow list
-2. For each followed user, fetching their discovery document
+2. For each followed user, resolving their repo path
 3. For each followed user, decrypting their posts (using the key envelope
    the followed user published for this user)
 4. Merging all posts, sorted by `created_at` descending
@@ -178,10 +175,11 @@ they follow — this is the spam prevention mechanism.
 The client publishes posts by:
 1. Creating a new post with a unique ID
 2. Encrypting the post JSON with the content key
-3. Pushing the encrypted post as `posts/{id}.json.enc` via the GitHub Contents API
+3. Pushing the encrypted post as `posts/{id}.json.enc` to user's static site (e.g. via the GitHub Contents API)
 4. Updating `posts/index.json` to include the new post ID
 
-The GitHub token is encrypted in `keys/_self.json` (see [Self Key](#self-key-keys_selfjson)).
+Any secrets needed for publishing (e.g. GitHub token) 
+ is encrypted in `keys/_self.json` (see [Self Key](#self-key-keys_selfjson)).
 
 ## Static Site Structure
 
